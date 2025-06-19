@@ -145,10 +145,53 @@ parser.add_option("--l3cache", action="store_true")
 然後發現stat.txt裡多了l3的資料代表成功了  
 ## Q3.Config last level cache to  2-way and full-way associative cache and test performance  
 1.先編譯產生執行檔:  
-gcc --static qicksort.c -o quicksort  
+`gcc --static qicksort.c -o quicksort`  
 
-2.可以直接透過command修改L3的associate:  
-像這樣:  
+2.可以直接透過command修改L3的associate以及其他層的size:  
+像這樣:`--l1d_assoc=4` 、 `--l3_size=1MB`  
+  
+2-way指令:`./build/X86/gem5.opt configs/example/se.py -c ./quicksort --cpu-type=TimingSimpleCPU --caches --l2cache --l3cache --l3_assoc=2 --l1i_size=32kB --l1d_size=32kB --l2_size=128kB --l3_size=1MB --mem-type=NVMainMemory --nvmain-config=../NVmain/Config/PCM_ISSCC_2012_4GB.config `  
+
+full-way指令:`./build/X86/gem5.opt configs/example/se.py -c ./quicksort --cpu-type=TimingSimpleCPU --caches --l2cache --l3cache --l3_assoc=16384 --l1i_size=32kB --l1d_size=32kB --l2_size=128kB --l3_size=1MB --mem-type=NVMainMemory --nvmain-config=../NVmain/Config/PCM_ISSCC_2012_4GB.config`  
+  
+備註:網路上好像寫assoc = 1的時候是full-way，但實際測試發現改成1的時候 # of replacements反而更高，猜測assoc = 1的時候可能不是full-way  
+## Q4.Modify last level cache policy based on frequency based replacement policy  
+1.可以先在./src/mem/cache/replacement_policies/ReplacementPolicies.py中找到GEM5有支援的policies  
+
+2.根據助教給的"FREQUENCY BASED REPLACEMENT POLICY"圖，推測應該是least frequently used algorithm，對應到支援policies中的LFURP，直接在./config/common/Caches.py中L3cache的class底下新增:  
+```python
+replacement_policy = Param.BaseReplacementPolicy(LFURP(),"Replacement policy")
+```  
+可以在config.ini中確認是否有成功更改  
+## Q5.Test the performance of write back and write through policy based on 4-way associative cache with isscc_pcm  
+1.觀察./src/mem/cache/base.cc:  
+可以看到原本writeBack的作法:  
+```cpp
+    if (pkt->isClean() && blk && blk->isDirty()) {
+        // A cache clean opearation is looking for a dirty
+        // block. If a dirty block is encountered a WriteClean
+        // will update any copies to the path to the memory
+        // until the point of reference.
+        DPRINTF(CacheVerbose, "%s: packet %s found block: %s\n",
+                __func__, pkt->print(), blk->print());
+        PacketPtr wb_pkt = writecleanBlk(blk, pkt->req->getDest(), pkt->id);
+        writebacks.push_back(wb_pkt);
+        pkt->setSatisfied();
+    }
+```  
+他的作法是遇到dirty block且收到isClean()封包時，就製造一個新的writeclean封包(wb_pkt)，將內容寫到下層記憶體(pkt->req->getDest())然後清除這個dirtyblock。  
+所以，我們可以仿照他的作法在BaseCache::access中修改他的write行為(在1073行中加入):  
+```cpp
+if (blk->isWritable()) {
+    PacketPtr writeclean_pkt = writecleanBlk(blk, pkt->req->getDest(), pkt->id);
+    writebacks.push_back(writeclean_pkt);
+}
+```  
+意思相當於每次只要找到可寫入的block，就產生一個writeClean封包，把資料往下層傳，所以會一直傳到記憶體，便實現了writeThrough
+
+
+
+
 
 
 
