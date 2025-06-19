@@ -187,7 +187,9 @@ if (blk->isWritable()) {
     writebacks.push_back(writeclean_pkt);
 }
 ```  
-意思相當於每次只要找到可寫入的block，就產生一個writeClean封包，把資料往下層傳，所以會一直傳到記憶體，便實現了writeThrough
+意思相當於每次只要找到可寫入的block，就產生一個writeClean封包，把資料往下層傳，所以會一直傳到記憶體，便實現了writeThrough  
+
+2.驗證:可以觀察兩次跑multiply的log檔，會發現writeRequest不同
 
 
 
