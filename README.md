@@ -142,7 +142,13 @@ parser.add_option("--l3cache", action="store_true")
 
 6.編譯完後跑  
 `./build/X86/gem5.opt configs/example/se.py -c tests/test-progs/hello/bin/x86/linux/hello --cpu-type=TimingSimpleCPU --caches --l2cache --l3cache --mem-type=NVMainMemory --nvmain-config=../NVmain/Config/PCM_ISSCC_2012_4GB.config`  
-然後發現stat.txt裡多了l3的資料
+然後發現stat.txt裡多了l3的資料代表成功了  
+## Q3.Config last level cache to  2-way and full-way associative cache and test performance  
+1.先編譯產生執行檔:  
+gcc --static qicksort.c -o quicksort  
+
+2.可以直接透過command修改L3的associate:  
+像這樣:  
 
 
 
