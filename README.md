@@ -55,7 +55,7 @@ version : Ubuntu18.04
 出現Hello World，代表成功了  
 ## Q2.Enable L3 last level cache in GEM5 + NVMAIN
 1.在`./config/common/Caches.py`增加L3 Cache的class:  
-(直接抄上面的L2Cache)  
+(直接抄檔案裡的L2Cache)  
 ```python
 class L3Cache(Cache):
     assoc = 8
